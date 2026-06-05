@@ -70,7 +70,6 @@ The app will request camera access when launched.
 
 - Sculpting engine tests are located in `ToccoTests/` and can be run with `⌘U`.
 - AR functionality and hand-tracking interactions must be tested on a physical device.
-- See `docs/UserTestingProtocol.md` for the usability testing procedure.
 
 ---
 
@@ -101,9 +100,24 @@ Optional debugging tools include an aim guide, hand-skeleton visualization, and 
 |--------|------------|
 | Correctness | Unit tests verify brush behavior, prevent invalid geometry, and validate undo/redo functionality. |
 | Performance | Real-time overlays display frame timing, brush execution time, and vertex counts. |
-| Usability | User studies measure task completion, accidental edits, performance, and subjective feedback. |
+| Informal feedback | Two friends tried early builds on a physical iPhone; their comments drove several UX changes (see below). |
 | Export | Generated OBJ files were successfully imported into external 3D tools such as Blender. |
-| Iteration | Development progressed from a basic sculpting prototype to gesture controls and usability improvements. |
+| Iteration | Development progressed from a basic touch prototype to gesture controls, visual feedback, and usability polish. |
+
+### Informal User Feedback
+
+No formal user study was run. Two friends (~10 minutes each on a late prototype) tried sculpting with hands and touch and gave casual feedback. Several of their comments were incorporated:
+
+| Feedback | Change made |
+|----------|-------------|
+| *"I can't tell if I'm adding or removing clay—everything looks the same."* | Added depth-based surface coloring: blue for carved areas, tan for neutral surface, orange for built-up regions. |
+| *"Push, pull, smooth—what do those even mean?"* | Renamed tools to **Build**, **Carve**, and **Blend**, with short on-screen hints in the tool panel. |
+| *"I have no idea where my hand is actually aiming."* | Added an optional **Aim guide** reticle that tracks pinch position and highlights when it hits the clay. |
+| *"Switching tools means stopping and tapping the panel every time."* | Added double-pinch in the air (when not touching the clay) to cycle Build → Carve → Blend, with a brief toast confirming the new tool. |
+| *"Sculpt vs. navigate—I didn't know which mode I was in."* | Renamed modes to **Shape** and **Move** and added a one-line hint under the mode buttons explaining each. |
+| *"Hand mode is cool but I'd want touch as a backup when it gets finicky."* | Kept touch sculpting as the default fallback and added a **Use your hands** toggle so either input method can be used without restarting. |
+
+Hand-gesture reliability is still the weakest part of the experience—both testers said it felt "pretty magical when it worked" but inconsistent in dim light or when their hands left the frame. That matches what I saw in testing and is listed under Current Limitations above.
 
 ---
 
@@ -157,5 +171,5 @@ Tocco was inspired by the tactile experience of working with real clay and by th
 | `Tocco/Export` | OBJ export functionality |
 | `Tocco/Session` | Save/load serialization |
 | `ToccoTests/` | Unit tests |
-| `docs/` | User testing materials |
+| `docs/` | Informal testing notes and protocol draft |
 | `scripts/` | Test and utility scripts |
