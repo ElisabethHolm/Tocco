@@ -17,14 +17,26 @@ struct ContentView: View {
                 .environmentObject(sessionStore)
                 .ignoresSafeArea()
 
+            PersonSegmentationOverlay()
+                .environmentObject(appState)
+
+            HandSkeletonOverlay()
+                .environmentObject(appState)
+
             AimAssistOverlay()
                 .environmentObject(appState)
 
+            AxisGizmoOverlay()
+                .environmentObject(appState)
+
             VStack(alignment: .leading, spacing: 12) {
-                ToolPanelView()
+                ToolPanelView(maxExpandedHeight: 320)
                 PerformanceOverlay(sample: appState.performanceSample)
             }
             .padding()
+
+            GestureShortcutToast()
+                .environmentObject(appState)
         }
         .environmentObject(sculptEngine)
         .environmentObject(commandStack)

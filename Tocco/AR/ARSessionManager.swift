@@ -42,11 +42,41 @@ final class ARSessionManager: NSObject, ObservableObject {
         let configuration = ARWorldTrackingConfiguration()
         configuration.environmentTexturing = .none
         configuration.planeDetection = [.horizontal, .vertical]
+        let occlusionSummary = Self.applyOcclusion(to: configuration)
         session.run(configuration)
-        ToccoDebug.info("ARSession", "session.run(configuration) called — planeDetection=horizontal+vertical, environmentTexturing=none")
+        ToccoDebug.info(
+            "ARSession",
+            "session.run(configuration) — planeDetection=horizontal+vertical, environmentTexturing=none, occlusion=[\(occlusionSummary)]"
+        )
         DispatchQueue.main.async { [weak self] in
             self?.sessionState = .running
             ToccoDebug.info("ARSession", "sessionState → running (published async)")
         }
+    }
+
+    /// Enables real-world depth occlusion so hands (and body) can cover virtual clay when closer to the camera.
+    /// People occlusion is automatic in ARView once `personSegmentationWithDepth` is set.
+    /// LiDAR environment mesh occlusion requires `sceneUnderstanding.options` on the ARView as well.
+    static func applyOcclusion(to configuration: ARWorldTrackingConfiguration) -> String {
+        var enabled: [String] = []
+
+        if ARWorldTrackingConfiguration.supportsFrameSemantics(.personSegmentationWithDepth) {
+            configuration.frameSemantics.insert(.personSegmentationWithDepth)
+            enabled.append("people+depth")
+        } else if ARWorldTrackingConfiguration.supportsFrameSemantics(.personSegmentation) {
+            configuration.frameSemantics.insert(.personSegmentation)
+            enabled.append("people")
+        }
+
+        if ARWorldTrackingConfiguration.supportsSceneReconstruction(.mesh) {
+            configuration.sceneReconstruction = .mesh
+            enabled.append("environment-mesh")
+        }
+
+        return enabled.isEmpty ? "unsupported" : enabled.joined(separator: ", ")
+    }
+
+    static var supportsEnvironmentMeshOcclusion: Bool {
+        ARWorldTrackingConfiguration.supportsSceneReconstruction(.mesh)
     }
 }

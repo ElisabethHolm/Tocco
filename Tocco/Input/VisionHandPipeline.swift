@@ -10,8 +10,8 @@ final class VisionHandPipeline {
     private var lastRun: CFAbsoluteTime = 0
     private let minInterval: CFAbsoluteTime = 1.0 / 24.0
 
-    func processFrame(arView: ARView, handRecognizer: HandGestureRecognizer, enabled: Bool) {
-        guard enabled else {
+    func processFrame(arView: ARView, handRecognizer: HandGestureRecognizer, handTrackingEnabled: Bool) {
+        guard handTrackingEnabled else {
             handRecognizer.clearVision()
             return
         }
@@ -27,8 +27,9 @@ final class VisionHandPipeline {
         request.maximumHandCount = 1
 
         let uiOrientation = arView.window?.windowScene?.interfaceOrientation ?? .portrait
-        let imageOrientation = uiOrientation.cgImagePropertyOrientationForBackCamera
-        let handler = VNImageRequestHandler(cvPixelBuffer: frame.capturedImage, orientation: imageOrientation, options: [:])
+        // Use `.up` so joint coordinates stay in the raw `capturedImage` buffer space (same as segmentation).
+        // Passing a display orientation here yields upright-normalized points that do not match `displayTransform`.
+        let handler = VNImageRequestHandler(cvPixelBuffer: frame.capturedImage, orientation: .up, options: [:])
 
         do {
             try handler.perform([request])

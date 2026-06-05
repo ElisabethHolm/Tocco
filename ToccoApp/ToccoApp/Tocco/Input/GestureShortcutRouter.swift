@@ -1,10 +1,8 @@
 import Foundation
 
-/// Applies Vision-derived shortcuts only on gesture **edges** so the brush picker is not overwritten every frame.
 final class GestureShortcutRouter {
-    /// Vision observation confidence for palm/fist shortcuts only (pinch sets Pull independently).
-    private let threshold: Float = 0.4
-    private let pinchDoubleTapWindow: TimeInterval = 0.55
+    private let toolCycleTapWindow: TimeInterval = 0.55
+    private let toolCycleMinGap: TimeInterval = 0.12
 
     func apply(_ recognizer: HandGestureRecognizer, to appState: AppState) {
         guard appState.useHandGestures else {
@@ -17,40 +15,32 @@ final class GestureShortcutRouter {
         let prev = appState.lastHandShortcutGesture
 
         if g == .pinch {
-            if prev != .pinch {
+            if prev != .pinch, !appState.aimReticleHitsClay {
                 let now = ProcessInfo.processInfo.systemUptime
-                if let lastPinch = appState.lastPinchShortcutTimestamp, now - lastPinch <= pinchDoubleTapWindow {
-                    appState.mode = appState.mode == .sculpt ? .navigate : .sculpt
-                    appState.statusText = appState.mode == .sculpt
-                        ? "Gesture: Sculpt mode"
-                        : "Gesture: Move mode (rotate, translate, scale)"
+                if let lastPinch = appState.lastPinchShortcutTimestamp,
+                   now - lastPinch <= toolCycleTapWindow,
+                   now - lastPinch >= toolCycleMinGap {
+                    cycleToNextTool(appState)
                     appState.lastPinchShortcutTimestamp = nil
-                    appState.lastHandShortcutGesture = .pinch
-                    return
+                } else {
+                    appState.lastPinchShortcutTimestamp = now
                 }
-                appState.lastPinchShortcutTimestamp = now
-                appState.selectedTool = .pull
-                appState.statusText = "Gesture: Pull (pinch sculpt)"
             }
             appState.lastHandShortcutGesture = .pinch
             return
         }
 
-        guard recognizer.confidence >= threshold else {
-            appState.statusText = "Low hand confidence — shortcuts paused"
-            appState.lastHandShortcutGesture = g
-            return
-        }
-
-        // Skip prev == .none so the first camera frame doesn't override the brush you picked in the UI.
-        if g == .openPalm, prev != .openPalm, prev != .none {
-            appState.selectedTool = .smooth
-            appState.statusText = "Gesture: Smooth"
-        } else if g == .fist, prev != .fist, prev != .none {
-            appState.selectedTool = .push
-            appState.statusText = "Gesture: Push"
-        }
-
         appState.lastHandShortcutGesture = g
+    }
+
+    private func cycleToNextTool(_ appState: AppState) {
+        let next: SculptTool
+        switch appState.selectedTool {
+        case .pull: next = .push
+        case .push: next = .smooth
+        case .smooth: next = .pull
+        }
+        appState.selectedTool = next
+        appState.presentGestureToast(next.clayName, symbol: next.clayIcon)
     }
 }

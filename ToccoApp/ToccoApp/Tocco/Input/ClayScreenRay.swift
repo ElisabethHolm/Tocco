@@ -10,27 +10,26 @@ enum ClayScreenRay {
     /// Wider test radius; brush is snapped to `clayMeshRadius` surface so sculpt stays on the real mesh.
     private static let clayAimSlopScale: Float = 1.75
 
-    /// World-space ray from camera through a screen point.
+    /// World-space ray from camera through a screen point in ARView coordinates.
     static func worldRay(from screenPoint: CGPoint, arView: ARView) -> (origin: SIMD3<Float>, direction: SIMD3<Float>)? {
-        guard let frame = arView.session.currentFrame else { return nil }
-        let camera = frame.camera
-        let size = arView.bounds.size
-        guard size.width > 1, size.height > 1 else { return nil }
+        arView.ray(through: screenPoint)
+    }
 
-        let x = Float(2 * screenPoint.x / size.width - 1)
-        let y = Float(-(2 * screenPoint.y / size.height - 1))
-
-        let orientation = arView.window?.windowScene?.interfaceOrientation ?? .portrait
-        let proj = camera.projectionMatrix(for: orientation, viewportSize: size, zNear: 0.001, zFar: 100)
-        let view = camera.viewMatrix(for: orientation)
-        let invVP = simd_inverse(proj * view)
-
-        let nearH = invVP * SIMD4<Float>(x, y, 0, 1)
-        let farH = invVP * SIMD4<Float>(x, y, 1, 1)
-        let nearW = SIMD3<Float>(nearH.x, nearH.y, nearH.z) / nearH.w
-        let farW = SIMD3<Float>(farH.x, farH.y, farH.z) / farH.w
-        let dir = simd_normalize(farW - nearW)
-        return (nearW, dir)
+    /// Brush center on the clay surface in model space, from a screen aim point.
+    static func modelBrushPointOnClay(
+        screenPoint: CGPoint,
+        arView: ARView,
+        modelEntity: ModelEntity
+    ) -> SIMD3<Float>? {
+        if let local = hitTestClayLocal(screenPoint: screenPoint, arView: arView, modelEntity: modelEntity) {
+            return local
+        }
+        guard let ray = worldRay(from: screenPoint, arView: arView) else { return nil }
+        return modelBrushPointOnClay(
+            worldOrigin: ray.origin,
+            worldDirection: ray.direction,
+            modelEntity: modelEntity
+        )
     }
 
     /// First intersection of the ray with a sphere at the model origin (unscaled mesh space).
@@ -50,7 +49,6 @@ enum ClayScreenRay {
         if let t = nearestPositiveRaySphereT(origin: o, dir: d, center: .zero, radius: clayMeshRadius) {
             return o + d * t
         }
-        // Forgiving “fat” hit: if the ray passes near the clay, snap the brush to the real sphere surface.
         let fatR = clayMeshRadius * clayAimSlopScale
         if let t = nearestPositiveRaySphereT(origin: o, dir: d, center: .zero, radius: fatR) {
             let raw = o + d * t
@@ -61,18 +59,13 @@ enum ClayScreenRay {
         return nil
     }
 
-    /// Whether a screen point’s camera ray would hit the clay (tight or fat sphere), for UI reticle.
+    /// Whether a screen point’s camera ray would hit the clay (mesh hit-test or analytic sphere), for UI reticle.
     static func screenAimHitsClay(
         screenPoint: CGPoint,
         arView: ARView,
         modelEntity: ModelEntity
     ) -> Bool {
-        guard let ray = worldRay(from: screenPoint, arView: arView) else { return false }
-        return modelBrushPointOnClay(
-            worldOrigin: ray.origin,
-            worldDirection: ray.direction,
-            modelEntity: modelEntity
-        ) != nil
+        modelBrushPointOnClay(screenPoint: screenPoint, arView: arView, modelEntity: modelEntity) != nil
     }
 
     /// Brush radius in model space (mesh vertices are unscaled; entity scale is applied in rendering).
@@ -80,6 +73,47 @@ enum ClayScreenRay {
         let s = (modelEntity.scale.x + modelEntity.scale.y + modelEntity.scale.z) / 3
         guard s > 1e-4 else { return worldMeters }
         return worldMeters / s
+    }
+
+    private static func hitTestClayLocal(
+        screenPoint: CGPoint,
+        arView: ARView,
+        modelEntity: ModelEntity
+    ) -> SIMD3<Float>? {
+        let hits = arView.hitTest(screenPoint, query: .nearest, mask: .all)
+        for hit in hits where isClayMeshHit(hit.entity, clayRoot: modelEntity) {
+            return worldToLocal(hit.position, modelEntity: modelEntity)
+        }
+        return nil
+    }
+
+    private static func isClayMeshHit(_ entity: Entity, clayRoot: ModelEntity) -> Bool {
+        guard isDescendant(entity, of: clayRoot) else { return false }
+        return !isGizmoEntity(entity)
+    }
+
+    private static func isGizmoEntity(_ entity: Entity) -> Bool {
+        var current: Entity? = entity
+        while let node = current {
+            if node.name == "transformAxesGizmo" { return true }
+            current = node.parent
+        }
+        return false
+    }
+
+    private static func isDescendant(_ entity: Entity, of root: Entity) -> Bool {
+        var current: Entity? = entity
+        while let node = current {
+            if node === root { return true }
+            current = node.parent
+        }
+        return false
+    }
+
+    private static func worldToLocal(_ world: SIMD3<Float>, modelEntity: ModelEntity) -> SIMD3<Float> {
+        let modelFromWorld = modelEntity.transformMatrix(relativeTo: nil).inverse
+        let local4 = modelFromWorld * SIMD4<Float>(world.x, world.y, world.z, 1)
+        return SIMD3<Float>(local4.x, local4.y, local4.z) / local4.w
     }
 
     private static func nearestPositiveRaySphereT(

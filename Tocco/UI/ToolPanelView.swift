@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct ToolPanelView: View {
+    var maxExpandedHeight: CGFloat = 420
+
     @EnvironmentObject private var appState: AppState
     @EnvironmentObject private var sculptEngine: SculptEngine
     @EnvironmentObject private var commandStack: CommandStack
@@ -14,7 +16,7 @@ struct ToolPanelView: View {
                 }
             } label: {
                 HStack {
-                    Text("Sculpt controls")
+                    Text("Tocco")
                         .font(.headline)
                     Spacer()
                     Image(systemName: "chevron.down")
@@ -25,7 +27,10 @@ struct ToolPanelView: View {
             .buttonStyle(.plain)
 
             if appState.toolPanelExpanded {
-                controlsContent
+                ScrollView(.vertical, showsIndicators: true) {
+                    controlsContent
+                }
+                .frame(maxHeight: maxExpandedHeight)
             }
         }
         .padding()
@@ -36,51 +41,75 @@ struct ToolPanelView: View {
 
     @ViewBuilder
     private var controlsContent: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Picker("Mode", selection: $appState.mode) {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 8) {
                 ForEach(InteractionMode.allCases) { mode in
-                    Text(mode.rawValue.capitalized).tag(mode)
+                    Button {
+                        appState.mode = mode
+                    } label: {
+                        Label(mode.clayName, systemImage: mode.clayIcon)
+                            .font(.subheadline.weight(.semibold))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 10)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(appState.mode == mode ? .accentColor : .gray.opacity(0.35))
                 }
             }
-            .pickerStyle(.segmented)
 
-            Picker("Brush", selection: $appState.selectedTool) {
-                ForEach(SculptTool.allCases) { tool in
-                    Text(tool.rawValue.capitalized).tag(tool)
-                }
-            }
-            .pickerStyle(.segmented)
-
-            VStack(alignment: .leading) {
-                Text("Size \(appState.brushSize, specifier: "%.3f")")
-                Slider(value: $appState.brushSize, in: 0.01...0.2)
-            }
-
-            VStack(alignment: .leading) {
-                Text("Strength \(appState.brushStrength, specifier: "%.3f")")
-                Slider(value: $appState.brushStrength, in: 0.002...0.08)
-            }
-
-            Toggle("Enable Hand Gestures", isOn: $appState.useHandGestures)
-            Toggle("Aim assist (reticle)", isOn: $appState.showAimAssist)
-            Text("Pinch near the camera to sculpt (index aim). Double-pinch quickly toggles Sculpt/Move mode. Open hand / fist change tool when confidence is high.")
-                .font(.caption2)
+            Text(appState.mode.clayHint)
+                .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
-            if appState.mode == .navigate {
+            if appState.mode == .sculpt {
+                if appState.useHandGestures {
+                    Label(appState.selectedTool.clayName, systemImage: appState.selectedTool.clayIcon)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.primary)
+                } else {
+                    HStack(spacing: 8) {
+                        ForEach(SculptTool.allCases) { tool in
+                            Button {
+                                appState.selectedTool = tool
+                            } label: {
+                                Label(tool.clayName, systemImage: tool.clayIcon)
+                                    .font(.caption.weight(.semibold))
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 8)
+                            }
+                            .buttonStyle(.bordered)
+                            .tint(appState.selectedTool == tool ? .accentColor : .secondary)
+                        }
+                    }
+                    Text("Turn on “Use your hands” to sculpt.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            if appState.mode == .sculpt {
                 VStack(alignment: .leading) {
-                    Text("Scale \(appState.modelScale, specifier: "%.2f")")
+                    Text("Hand size")
+                    Slider(value: $appState.brushSize, in: 0.01...0.2)
+                }
+                VStack(alignment: .leading) {
+                    Text("Pressure")
+                    Slider(value: $appState.brushStrength, in: 0.002...0.08)
+                }
+            } else {
+                VStack(alignment: .leading) {
+                    Text("Piece size")
                     Slider(value: $appState.modelScale, in: 0.2...3.0)
                 }
-                VStack(alignment: .leading) {
-                    Text("Rotate Y \(appState.modelRotationY, specifier: "%.2f")")
-                    Slider(value: $appState.modelRotationY, in: -Float.pi...Float.pi)
-                }
-                VStack(alignment: .leading) {
-                    Text("Lift \(appState.modelYOffset, specifier: "%.2f")")
-                    Slider(value: $appState.modelYOffset, in: -0.3...0.3)
-                }
+            }
+
+            Toggle("Use your hands", isOn: $appState.useHandGestures)
+            Toggle("Aim guide", isOn: $appState.showAimAssist)
+
+            DisclosureGroup("Debug") {
+                Toggle("Hand skeleton", isOn: $appState.showHandSkeletonOverlay)
+                Toggle("Person mask", isOn: $appState.showPersonSegmentationOverlay)
             }
 
             HStack {
@@ -98,48 +127,25 @@ struct ToolPanelView: View {
             }
 
             HStack {
-                Button("Reset Mesh") {
+                Button("Reset clay") {
                     sculptEngine.resetMesh()
                     commandStack.reset()
                 }
 
                 Button("Save") {
-                    do {
-                        try sessionStore.save(meshData: sculptEngine.meshData)
-                    } catch {
-                        ToccoDebug.error("Session", "Save failed: \(error.localizedDescription)")
-                    }
+                    try? sessionStore.save(meshData: sculptEngine.meshData)
                 }
 
                 Button("Load") {
-                    do {
-                        let mesh = try sessionStore.load()
+                    if let mesh = try? sessionStore.load() {
                         sculptEngine.restore(meshData: mesh)
-                    } catch {
-                        ToccoDebug.error("Session", "Load failed: \(error.localizedDescription)")
                     }
                 }
             }
 
             Button("Export OBJ") {
-                do {
-                    _ = try OBJExporter().export(meshData: sculptEngine.meshData)
-                } catch {
-                    ToccoDebug.error("Export", "OBJ export failed: \(error.localizedDescription)")
-                }
+                try? OBJExporter().export(meshData: sculptEngine.meshData)
             }
-
-            Button("Export glTF (stub)") {
-                do {
-                    _ = try GLTFExporter().exportStub(meshData: sculptEngine.meshData)
-                } catch {
-                    ToccoDebug.error("Export", "glTF stub export failed: \(error.localizedDescription)")
-                }
-            }
-
-            Text(appState.statusText)
-                .font(.caption)
-                .foregroundStyle(.secondary)
         }
     }
 }

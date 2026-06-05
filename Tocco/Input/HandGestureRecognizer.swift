@@ -11,6 +11,8 @@ final class HandGestureRecognizer: ObservableObject {
     @Published private(set) var indexTipViewPoint: CGPoint?
     @Published private(set) var thumbTipViewPoint: CGPoint?
     @Published private(set) var pinchAimViewPoint: CGPoint?
+    @Published private(set) var skeletonSegmentViewPoints: [(CGPoint, CGPoint)] = []
+    @Published private(set) var skeletonJointViewPoints: [CGPoint] = []
 
     enum Gesture: String {
         case none
@@ -25,6 +27,8 @@ final class HandGestureRecognizer: ObservableObject {
         indexTipViewPoint = nil
         thumbTipViewPoint = nil
         pinchAimViewPoint = nil
+        skeletonSegmentViewPoints = []
+        skeletonJointViewPoints = []
     }
 
     func applyVisionObservation(
@@ -47,6 +51,12 @@ final class HandGestureRecognizer: ObservableObject {
             indexTipViewPoint = nil
             thumbTipViewPoint = nil
             pinchAimViewPoint = nil
+            updateSkeleton(
+                from: observation,
+                arFrame: arFrame,
+                viewBounds: viewBounds,
+                interfaceOrientation: interfaceOrientation
+            )
             return
         }
 
@@ -83,6 +93,31 @@ final class HandGestureRecognizer: ObservableObject {
         } else {
             pinchAimViewPoint = nil
         }
+
+        updateSkeleton(
+            from: observation,
+            arFrame: arFrame,
+            viewBounds: viewBounds,
+            interfaceOrientation: interfaceOrientation
+        )
+    }
+
+    private func updateSkeleton(
+        from observation: VNHumanHandPoseObservation,
+        arFrame: ARFrame,
+        viewBounds: CGRect,
+        interfaceOrientation: UIInterfaceOrientation
+    ) {
+        let skeleton = HandSkeleton.extract(from: observation) { visionPoint in
+            mapVisionPointToView(
+                normalizedVision: visionPoint,
+                frame: arFrame,
+                viewBounds: viewBounds,
+                interfaceOrientation: interfaceOrientation
+            )
+        }
+        skeletonSegmentViewPoints = skeleton.segments
+        skeletonJointViewPoints = skeleton.joints
     }
 
     private func classifyOpenOrFist(_ observation: VNHumanHandPoseObservation) -> Gesture {
@@ -108,12 +143,11 @@ final class HandGestureRecognizer: ObservableObject {
         viewBounds: CGRect,
         interfaceOrientation: UIInterfaceOrientation
     ) -> CGPoint {
-        let n = normalizedVision
-        let t = frame.displayTransform(for: interfaceOrientation, viewportSize: viewBounds.size)
-        let viewNormalized = n.applying(t)
-        let raw = CGPoint(
-            x: viewNormalized.x * viewBounds.width,
-            y: viewNormalized.y * viewBounds.height
+        let raw = ARCameraOverlayMapper.visionNormalizedToView(
+            normalizedVision,
+            frame: frame,
+            viewSize: viewBounds.size,
+            orientation: interfaceOrientation
         )
         return raw.clamped(to: viewBounds.insetBy(dx: -40, dy: -40))
     }

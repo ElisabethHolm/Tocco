@@ -40,25 +40,19 @@ final class TouchSculptController {
                 modelEntity: target
             )
             let sz = arView.bounds.size
-            let poly = AimRayProjection.screenRayPolyline(screenPoint: location, arView: arView)
-            let norm: (CGPoint) -> CGPoint = { pt in
-                CGPoint(x: pt.x / max(sz.width, 1), y: pt.y / max(sz.height, 1))
-            }
+            let norm = CGPoint(
+                x: location.x / max(sz.width, 1),
+                y: location.y / max(sz.height, 1)
+            )
             DispatchQueue.main.async {
-                appState.aimReticleUV = norm(location)
+                appState.aimReticleUV = norm
                 appState.aimReticleHitsClay = hitsClay
-                appState.aimRayPolylineUV = poly.map(norm)
             }
-        }
-
-        guard let ray = ClayScreenRay.worldRay(from: location, arView: arView) else {
-            ToccoDebug.throttled("sculpt-no-ray", interval: 1, category: "Input", "Could not build camera ray (no AR frame yet)")
-            return
         }
 
         if let localCenter = ClayScreenRay.modelBrushPointOnClay(
-            worldOrigin: ray.origin,
-            worldDirection: ray.direction,
+            screenPoint: location,
+            arView: arView,
             modelEntity: target
         ) {
             let localRadius = ClayScreenRay.localBrushRadius(worldMeters: appState.brushSize, modelEntity: target)
