@@ -110,20 +110,19 @@ No formal user study was run. Two friends (~10 minutes each on a late prototype)
 
 | Feedback | Change made |
 |----------|-------------|
-| *"I can't tell if I'm adding or removing clay—everything looks the same."* | Added depth-based surface coloring: blue for carved areas, tan for neutral surface, orange for built-up regions. |
-| *"Push, pull, smooth—what do those even mean?"* | Renamed tools to **Build**, **Carve**, and **Blend**, with short on-screen hints in the tool panel. |
+| *"I can't tell if I'm adding or removing clay since everything looks the same."* | Added depth-based surface coloring: blue for carved areas, tan for neutral surface, orange for built-up regions. |
+| *"What do the different modes mean?"* | Renamed tools to **Build**, **Carve**, and **Blend**, with short on-screen hints in the tool panel. |
 | *"I have no idea where my hand is actually aiming."* | Added an optional **Aim guide** reticle that tracks pinch position and highlights when it hits the clay. |
-| *"Switching tools means stopping and tapping the panel every time."* | Added double-pinch in the air (when not touching the clay) to cycle Build → Carve → Blend, with a brief toast confirming the new tool. |
-| *"Sculpt vs. navigate—I didn't know which mode I was in."* | Renamed modes to **Shape** and **Move** and added a one-line hint under the mode buttons explaining each. |
-| *"Hand mode is cool but I'd want touch as a backup when it gets finicky."* | Kept touch sculpting as the default fallback and added a **Use your hands** toggle so either input method can be used without restarting. |
+| *"The flow is disrupted when switching tools by tapping the screen."* | Added double-pinch in the air (when not touching the clay) to cycle Build → Carve → Blend, with a brief toast confirming the new tool. |
+| *"I can't easily tell what mode I'm currently in."* | Renamed modes to **Shape** and **Move** and added a one-line hint under the mode buttons explaining each. |
 
-Hand-gesture reliability is still the weakest part of the experience—both testers said it felt "pretty magical when it worked" but inconsistent in dim light or when their hands left the frame. That matches what I saw in testing and is listed under Current Limitations above.
+Hand-gesture reliability is still the weakest part of the experience. Both testers said it felt "pretty magical when it worked" but inconsistent in dim light or when their hands left the frame. That matches what I saw in testing and is listed under Current Limitations above.
 
 ---
 
 ## AI Usage Disclosure
 
-AI coding assistants, including **Cursor**, **Claude**, and **GPT-based models**, were used throughout development for:
+AI coding assistants, including **Cursor**, **Chat GPT**, were used throughout development for:
 
 - Generating boilerplate code and project scaffolding
 - Debugging ARKit and Vision integration issues
