@@ -88,7 +88,7 @@ The app will request camera access when launched.
 4. Switch to **Move Mode** to scale, rotate, or raise the sculpture.
 5. Use **Undo** and **Redo** to reverse edits.
 6. Save or load projects from local storage.
-7. Export completed sculptures as OBJ files for use in Blender or other 3D software.
+7. Export completed sculptures as OBJ files for use in [Blender](https://www.blender.org/) or other 3D software.
 
 Optional debugging tools include an aim guide, hand-skeleton visualization, and person-segmentation overlays.
 
@@ -101,7 +101,7 @@ Optional debugging tools include an aim guide, hand-skeleton visualization, and 
 | Correctness | Unit tests verify brush behavior, prevent invalid geometry, and validate undo/redo functionality. |
 | Performance | Real-time overlays display frame timing, brush execution time, and vertex counts. |
 | Informal feedback | Two friends tried early builds on a physical iPhone; their comments drove several UX changes (see below). |
-| Export | Generated OBJ files were successfully imported into external 3D tools such as Blender. |
+| Export | Generated OBJ files were successfully imported into external 3D tools such as [Blender](https://www.blender.org/). |
 | Iteration | Development progressed from a basic touch prototype to gesture controls, visual feedback, and usability polish. |
 
 ### Informal User Feedback
@@ -138,7 +138,7 @@ All final design decisions, implementation choices, testing, and evaluation were
 - **Course:** CS 153 – Frontier Systems, Stanford University
 - **Author:** Elisabeth Holm
 - Built from scratch specifically for this project
-- Uses Apple's ARKit, RealityKit, Vision, and SwiftUI frameworks
+- **Apple frameworks:** [ARKit](https://developer.apple.com/documentation/arkit), [RealityKit](https://developer.apple.com/documentation/realitykit), [Vision](https://developer.apple.com/documentation/vision) (`VNDetectHumanHandPoseRequest`, `VNGeneratePersonSegmentationRequest`), [SwiftUI](https://developer.apple.com/documentation/swiftui)
 
 Tocco was inspired by the tactile experience of working with real clay and by the potential of mobile AR as a creative medium. The goal was not to replace professional 3D modeling software, but to create a lightweight, intuitive sculpting experience that feels natural and approachable.
 
@@ -146,12 +146,12 @@ Tocco was inspired by the tactile experience of working with real clay and by th
 
 ## External Resources
 
-- ARKit Documentation
-- RealityKit Documentation
-- Vision Hand Pose Detection
-- Vision Person Segmentation
-- Wavefront OBJ Specification
-- Blender
+- [ARKit documentation](https://developer.apple.com/documentation/arkit)
+- [RealityKit documentation](https://developer.apple.com/documentation/realitykit)
+- [Vision hand-pose detection](https://developer.apple.com/documentation/vision/vndetecthumanhandposerequest)
+- [Vision person segmentation](https://developer.apple.com/documentation/vision/vngeneratepersonsegmentationrequest)
+- [Wavefront OBJ format](https://en.wikipedia.org/wiki/Wavefront_.obj_file)
+- [Blender](https://www.blender.org/)
 
 ---
 
@@ -170,5 +170,5 @@ Tocco was inspired by the tactile experience of working with real clay and by th
 | `Tocco/Export` | OBJ export functionality |
 | `Tocco/Session` | Save/load serialization |
 | `ToccoTests/` | Unit tests |
-| `docs/` | Informal testing notes and protocol draft |
+| `docs/` | Informal testing notes and protocol draft ([UserTestingProtocol.md](docs/UserTestingProtocol.md)) |
 | `scripts/` | Test and utility scripts |
